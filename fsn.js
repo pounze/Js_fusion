@@ -20,13 +20,6 @@
 
 	fsn.fn = Library.prototype =
 	{
-		self:function()
-		{
-			for(var i=0;i<this.length;i++)
-		    {
-		    	return this[i];
-		    }
-		},
 		css:function(method,value)
 		{
 			switch(method)
@@ -1074,16 +1067,18 @@
 			for(var i=0;i<this.length;i++)
 			{
 				this[i].className += ' '+className;
-				return this[i];
 			}
+
+			return this;
 		},
 		removeClass:function(className)
 		{
 			for(var i=0;i<this.length;i++)
 			{
 				this[i].classList.remove(className);
-				return this[i];
 			}
+
+			return this;
 		},
 		classes:function()
 		{
@@ -1097,8 +1092,9 @@
 			for(var i=0;i<this.length;i++)
 			{
 				this[i].innerHTML = '';
-				return this[i];
 			}
+
+			return this;
 		},
 		height:function()
 		{
@@ -1107,14 +1103,14 @@
 				if(typeof(height) != 'undefined')
 				{
 					this[i].offsetHeight = height;
-					return this[i];
 				}
 				else
 				{
 					return this[i].offsetHeight;
-					return this[i];
 				}
 			}
+
+			return this;
 		},
 		width:function()
 		{
@@ -1123,14 +1119,14 @@
 				if(typeof(width) != 'undefined')
 				{
 					this[i].offsetWidth = width;
-					return this[i];
 				}
 				else
 				{
 					return this[i].offsetWidth;
-					return this[i];
 				}
 			}
+
+			return this;
 		},
 		top:function()
 		{
@@ -1139,12 +1135,10 @@
 				if(typeof(top) != 'undefined')
 				{
 					this[i].offsetTop = top;
-					return this[i];
 				}
 				else
 				{
 					return this[i].offsetTop;
-					return this[i];
 				}
 			}
 
@@ -1157,52 +1151,45 @@
 				if(typeof(left) != 'undefined')
 				{
 					this[i].offsetLeft = left;
-					return this[i];
 				}
 				else
 				{
 					return this[i].offsetLeft;
-					return this[i];
 				}
 			}
-		},
-		hide:function()
-		{
-			for(var i=0;i<this.length;i++)
-			{
-			    this[i].style.display = 'none';
-			    return this[i];
-			}
+
+			return this;
 		},
 		show:function()
 		{
 			for(var i=0;i<this.length;i++)
 			{
 			    this[i].style.display = 'block';
-			    return this[i];
 			}
+
+			return this;
 		},
-	   parent:function(parent)
-	   {
-	   	  	for(var i=0;i<this.length;i++)
-		    {
-		    	if(this[i].parentNode.tagName.toLowerCase() == parent)
-		    	{
-		    		return this[i].parentNode;
-		    	}
-		    }
-	   },
+		hide:function()
+		{
+			for(var i=0;i<this.length;i++)
+			{
+			    this[i].style.display = 'none';
+			}
+
+			return this;
+		},
 	   remove:function(func)
 	   {
-	   		if(typeof(func) != 'undefined')
-		    {
-		    	func();
-		    }
 		    for(var i=0;i<this.length;i++)
 		    {
 		    	this[i].parentNode.removeChild(this[i]);
-		    	return this[i];
 		    }
+
+		    if(typeof(func) != 'undefined')
+		    {
+		    	func();
+		    }
+		    return this;
 	   },
 	   append:function(elem)
 	   {
@@ -1213,8 +1200,8 @@
 		    	div.innerHTML += elem;
 		    	this[i].appendChild(div);
 		    	div.outerHTML = elem;
-		    	return this[i];
 		    }
+		    return this;
 	   },
 	   // mouse events
 	   click:function(callback)
@@ -1991,7 +1978,7 @@
 		    	};
 		    }
 	   },
-	   show:function(callback)
+	   elemShow:function(callback)
 	   {
 	   		for(var i=0;i<this.length;i++)
 		    {
@@ -2257,433 +2244,457 @@
 		}
 	};
 
+	/*
+		bind object into document
+	*/
+
+	fsn.bindObj = Library.prototype.bindObj = function(bindObj,returnData)
+	{
+		var htmlContent = returnData();
+		var catchData = htmlContent.match(/[\{][a-z\_\.]+[\}]/ig);
+		var catchDataLen = catchData.length;
+		var newCatchData = [];
+		for(var i=0;i<catchDataLen;i++)
+		{
+			newCatchData[i] = catchData[i].replace(/\{[a-z]+/g,'').replace(/[\.]/,'').replace(/[\}]/,'');
+			htmlContent = htmlContent.replace(catchData[i],findProp(bindObj, newCatchData[i]));
+		}
+
+		function findProp(obj, prop, defval)
+		{
+		    if (typeof defval == 'undefined')
+		    {
+		    	defval = null;
+		    }
+		    prop = prop.split('.');
+		    for (var i = 0; i < prop.length; i++)
+		    {
+		        if(typeof obj[prop[i]] == 'undefined')
+		        {
+		            return defval;
+		        }
+
+		        obj = obj[prop[i]];
+		    }
+		    return obj;
+		}
+
+		return htmlContent;
+	};
+
+	/*
+		bind array for repeat data
+	*/
+
+	fsn.bindArr = Library.prototype.bindArr = function(bindObj,returnData)
+	{
+		var htmlContent = returnData();
+		var catchData = htmlContent.match(/[\{][a-z\_\.]+[\}]/ig);
+		var resultHtmlContent = '';
+		var catchDataLen = catchData.length;
+		var newCatchData = [];
+		var bindObjLen = bindObj.length;
+
+		for(var i=0;i<catchDataLen;i++)
+		{
+			newCatchData[i] = catchData[i].replace(/\{[a-z]+/g,'').replace(/[\.]/,'').replace(/[\}]/,'');
+			for(var j=0;j<bindObjLen;j++)
+			{
+				if(!resultHtmlContent.match(catchData[i],bindObj[j][newCatchData[i]]))
+				{
+					resultHtmlContent += htmlContent;
+				}
+
+				if(typeof(bindObj[j]) != "object" && bindObj[j].length > 0)
+				{
+
+					resultHtmlContent = resultHtmlContent.replace(catchData[i],bindObj[j]);
+				}
+				else
+				{
+					resultHtmlContent = resultHtmlContent.replace(catchData[i],bindObj[j][newCatchData[i]]);
+				}
+
+			}
+		}
+
+		return resultHtmlContent;
+	};
+
+	/*
+		render html from json data
+	*/
+
+	fsn.render = Library.prototype.render = function(nodeElem,newNode)
+	{
+		// traverse the object and looking for children if present then it breaks further recursively
+
+		for(var nodeObj in  nodeElem)
+		{
+			if(nodeObj == "children")
+			{
+				var objLen = nodeElem[nodeObj].length;
+
+				for(var i=0;i<objLen;i++)
+				{
+					// after breaking into new object it traverses
+					if(typeof(nodeElem[nodeObj][i]['node']) != 'undefined')
+					{
+						if(typeof(nodeElem[nodeObj][i]['node']['nodeType']) != 'undefined')
+						{
+							// creates elements
+							var node = document.createElement(nodeElem[nodeObj][i]['node']['nodeType']);
+							newNode.appendChild(node);
+						}
+
+						// if text attr is present then it sets
+						if(typeof(nodeElem[nodeObj][i]['node']['setText']) != 'undefined')
+						{
+							node.textContent = nodeElem[nodeObj][i]['node']['setText'];
+						}
+
+						// if name atr is present
+						if(typeof(nodeElem[nodeObj][i]['node']['name']) != 'undefined')
+						{
+							node.name = nodeElem[nodeObj][i]['node']['name'];
+						}
+
+						// if value atr is present
+						if(typeof(nodeElem[nodeObj][i]['node']['value']) != 'undefined')
+						{
+							node.value = nodeElem[nodeObj][i]['node']['value'];
+						}
+
+						// if type atr is present
+						if(typeof(nodeElem[nodeObj][i]['node']['type']) != 'undefined')
+						{
+							node.type = nodeElem[nodeObj][i]['node']['type'];
+						}
+
+						// if action atr is present
+						if(typeof(nodeElem[nodeObj][i]['node']['action']) != 'undefined')
+						{
+							node.action = nodeElem[nodeObj][i]['node']['action'];
+						}
+
+						// if method is present
+						if(typeof(nodeElem[nodeObj][i]['node']['method']) != 'undefined')
+						{
+							node.method = nodeElem[nodeObj][i]['node']['method'];
+						}
+
+						// if css attribute is present
+						if(typeof(nodeElem[nodeObj][i]['node']['css']) != 'undefined')
+						{
+							node.style.cssText = nodeElem[nodeObj][i]['node']['css'];
+						}
+
+						// if id attr is present
+						if(typeof(nodeElem[nodeObj][i]['node']['id']) != 'undefined')
+						{
+							node.id = nodeElem[nodeObj][i]['node']['id'];
+						}
+
+						// if className is present
+						if(typeof(nodeElem[nodeObj][i]['node']['className']) != 'undefined')
+						{
+							node.className = nodeElem[nodeObj][i]['node']['className'];
+						}
+
+						// if href atr is present
+						if(typeof(nodeElem[nodeObj][i]['node']['href']) != 'undefined')
+						{
+							node.href = nodeElem[nodeObj][i]['node']['href'];
+						}
+
+						// if setAttribute is present
+						if(typeof(nodeElem[nodeObj][i]['node']['setAttribute']) != 'undefined')
+						{
+							node.setAttribute(nodeElem[nodeObj][i]['node']['setAttribute'][0],nodeElem[nodeObj][i]['node']['setAttribute'][1]);
+						}
+
+						// if children is present
+						if(typeof(nodeElem[nodeObj][i]['node']['children']) != 'undefined')
+						{
+							fsn.render(nodeElem[nodeObj][i]['node'],node);
+						}
+					}
+				}
+			}
+		}
+	};
+
 	fsn.createClass = Library.prototype.createClass = function(obj,container)
 	{
-		let value = obj.$scopeObject();
-		this.renderVar = obj.$render(value);
+		obj.$scopeObject();
+		this.renderVar = obj.$render();
 		container.innerHTML += this.renderVar;
 	};
 
-
-	fsn.changePage = Library.prototype.changePage = function(self,event)
+	fsn.createApp = Library.prototype.createApp = function($appName,callback)
 	{
-		var link = self.getAttribute('href');
+		var $scope = {};
+		callback($scope);
+		// get page DOM
+		var pageElement = document.documentElement;
+		// traverse by tagName
+		var elements = pageElement.getElementsByTagName("*");
+		// get the length of the html elements
+		var elementsLen = elements.length;
+
+		var i,j,dataLen,re,k;
+		var data = '',callbackData = '',$callbackData = '';
+		var repeatObject,repeatObjectLen;
+
+		// now traversing through the elementLen
+		for(i=0;i<elementsLen;i++)
+		{
+			// if fsn-render attribute is found
+
+			if(elements[i].getAttribute('fsn-render') == $appName)
+			{
+				// renders the page accordingly with the object
+
+				data = elements[i].innerHTML;
+				data = data.replace(/[\{\{]/g,'').replace(/[\}\}]/g,'');
+				data = data.match(/[a-z\_\.]+/ig);
+				dataLen = data.length;
+				for(j=0;j<dataLen;j++)
+				{
+					callbackData = findProp($scope,data[j]);
+					re = new RegExp("{{"+data[j]+"}}");
+					elements[i].innerHTML = elements[i].innerHTML.replace(re,callbackData).trim();
+				}
+			}
+
+			// if the object is an array and want a repeated elements
+
+			if(elements[i].getAttribute('fsn-object') == $appName)
+			{
+				data = elements[i].innerHTML;
+				repeatObject = elements[i].getAttribute('fsn-repeat');
+
+				$callbackData = findProp($scope, repeatObject);
+
+				if($callbackData != null)
+				{
+					var catchData = data.match(/[\{\{][a-z\_\.]+[\}\}]/ig);
+					var resultHtmlContent = '';
+					var catchDataLen = catchData.length;
+					var newCatchData = [];
+					var bindObjLen = $callbackData.length;
+
+					for(k=0;k<catchDataLen;k++)
+					{
+						newCatchData[k] = catchData[k].replace(/\{[a-z]+/g,'').replace(/[\.]/,'').replace(/[\}]/,'');
+						for(var j=0;j<bindObjLen;j++)
+						{
+							if(!resultHtmlContent.match(catchData[k],$callbackData[j][newCatchData[k]]))
+							{
+								resultHtmlContent += data;
+							}
+
+							re = new RegExp("{"+catchData[k]+"}");
+
+							if(typeof($callbackData[j]) != "object" && $callbackData[j].length > 0)
+							{
+
+								resultHtmlContent = resultHtmlContent.replace(re,$callbackData[j]);
+							}
+							else
+							{
+								resultHtmlContent = resultHtmlContent.replace(re,$callbackData[j][newCatchData[k]]);
+							}
+
+						}
+					}
+
+					// finally replace the elements where the changes happens
+					elements[i].innerHTML = resultHtmlContent;
+
+				}
+			}
+		}
+
+		function findProp(obj, prop, defval)
+		{
+		    if (typeof defval == 'undefined')
+		    {
+		    	defval = null;
+		    }
+		    prop = prop.split('.');
+		    for (var i = 0; i < prop.length; i++)
+		    {
+		        if(typeof obj[prop[i]] == 'undefined')
+		        {
+		            return defval;
+		        }
+
+		        obj = obj[prop[i]];
+		    }
+		    return obj;
+		}
+	};
+
+	
+	fsn.http = Library.prototype.http = function(obj)
+	{
+		var url = obj.url;
+		var requestMethod = obj.requestMethod;
+
+		if(typeof(obj.data) != 'undefined')
+		{
+			var data = obj.data;
+		}
+
 		if(window.XMLHttpRequest)
 		{
-			var ajx = new XMLHttpRequest();
+			var AJAX = new XMLHttpRequest();
 		}
 		else
 		{
-			var ajx = new ActiveXObject("Microsoft.XMLHTTP");
+			var AJAX = new ActiveXObject("Microsoft.XMLHTTP");
 		}
 
-		if(document.getElementById('PageLoadProgress') != null && document.getElementById('PageLoadContainer') != null)
+		if(typeof(obj.progressType) != 'undefined')
 		{
-			document.getElementById('PageLoadContainer').style.display = 'block';
-			document.getElementById('PageLoadProgress').style.width = 0;
-			ajx.onprogress = function(e)
+			if(obj.progressType == 'Loadingbar' && typeof(obj.Loadingbar) != 'undefined')
 			{
-				var percent = Math.round((e.loaded/e.total)*100);
-				document.getElementById("PageLoadProgress").style.width = percent + '%';
-			};
+				AJAX.upload.onprogress = function(e)
+				{
+					document.getElementById(obj.Loadingbar).style.display = 'block';
+				};
+			}
+
+			if(obj.progressType == 'Progressbar' && typeof(obj.Progressbar) != 'undefined' && typeof(obj.ProgressContainer) != 'undefined')
+			{
+				document.getElementById(obj.ProgressContainer).style.display = 'block';
+				AJAX.upload.onprogress = function(e)
+				{
+					var percent = Math.round((Math.round((e.loaded/e.total)*100) / 2));
+					document.getElementById(obj.Progressbar).style.width = percent + '%';
+				};
+				AJAX.onprogress = function(e)
+				{
+					var percent = Math.round((Math.round((e.loaded/e.total)*100) / 2));
+					document.getElementById(obj.Progressbar).style.width = (parseInt(document.getElementById(obj.Progressbar).style.width) + percent) + '%';
+				};
+			}
 		}
 
-		ajx.onreadystatechange  = function()
+
+
+		AJAX.onreadystatechange  = function()
 		{
 			if(this.readyState == 4 && this.status == 200)
 			{
-				document.documentElement.innerHTML = ajx.responseText;
 
-				var scriptElem = document.getElementsByTagName('script');
-				var scriptLen = scriptElem.length;
-				for(var i=0;i<scriptLen;i++)
+				if(obj.progressType == 'Loadingbar' && typeof(obj.Loadingbar) != 'undefined')
 				{
-					loadExternalJSFile(scriptElem[i],function(callback)
-					{
-						document.body.appendChild(callback);
-					});
+					document.getElementById(obj.Loadingbar).style.display = 'none';
 				}
 
-				function loadExternalJSFile(fileName,callback)
+				setTimeout(function()
 				{
-					if(fileName.hasAttribute('src') && fileName.src != '')
+					if(obj.progressType == 'Progressbar' && typeof(obj.Progressbar) != 'undefined' && typeof(obj.ProgressContainer) != 'undefined')
 					{
-						var script = document.createElement('script');
-						script.setAttribute('type','text/javascript');
-						script.setAttribute('src',fileName.src);
-						script.defer = true;
-						callback(script);
+						document.getElementById(obj.ProgressContainer).style.display = 'none';
+						document.getElementById(obj.Progressbar).style.width = '0px';
 					}
-					else
-					{
-						setTimeout(function()
-						{
-							var script = document.createElement('script');
-							script.setAttribute('type','text/javascript');
-							script.text = fileName.innerHTML;
-							script.defer = true;
-							callback(script);
-						},0);
-					}
-				}
+				},1000);
 
-				fsn.ChangeUrl(link,link);
+			    if(typeof(obj.success) != 'undefined')
+				{
+				    obj.success(AJAX.responseText);
+				}
 			}
 			if(this.readyState == 4 && this.status != 200)
 			{
-			    console.log('Oops something went wrong');
+			    if(typeof(obj.error) != 'undefined')
+				{
+				    obj.error('Oops something went wrong');
+				}
 			}
 		};
 
-		ajx.open("GET",link,true);
-		ajx.send();
-		event.preventDefault();
-	};
-
-	fsn.createSocket = Library.prototype.http = function(obj)
-	{
-		try
+		if(typeof(obj.async) == 'undefined')
 		{
-		   let websocket = new WebSocket(obj.url);
-
-	      websocket.onopen = function(ev)
-	      { 
-	        obj.open(ev);
-	      }
-
-	      websocket.onmessage = function(ev)
-	      {
-	        obj.message(ev);
-	      };
-	      
-	      websocket.onerror = function(ev)
-	      {
-	        obj.error(ev);
-	      }; 
-	      websocket.onclose   = function(ev)
-	      {
-	        obj.close(ev);
-	      }; 
-
-	      return websocket;
+			AJAX.open(requestMethod,url,true);
 		}
-		catch(e)
+		else
 		{
-			console.error(e);
-		}
-	};
-
-	fsn.socketSend = Library.prototype.socketSend = function(websocket,data)
-	{
-		websocket.send(JSON.stringify(data)); 
-	};
-
-
-	fsn.http = Library.prototype.http = function(obj)
-	{
-		try
-		{
-			var url = obj.url;
-			var requestMethod = obj.requestMethod;
-
-			if(typeof(obj.data) != 'undefined')
-			{
-				var data = obj.data;
-			}
-
-			if(window.XMLHttpRequest)
-			{
-				var AJAX = new XMLHttpRequest();
-			}
-			else
-			{
-				var AJAX = new ActiveXObject("Microsoft.XMLHTTP");
-			}
-
-			if(typeof(obj.progressType) != 'undefined')
-			{
-				if(obj.progressType == 'Loadingbar' && typeof(obj.Loadingbar) != 'undefined')
-				{
-					AJAX.upload.onprogress = function(e)
-					{
-						document.getElementById(obj.Loadingbar).style.display = 'block';
-					};
-				}
-
-				if(obj.progressType == 'Progressbar' && typeof(obj.Progressbar) != 'undefined' && typeof(obj.ProgressContainer) != 'undefined')
-				{
-					document.getElementById(obj.ProgressContainer).style.display = 'block';
-					AJAX.upload.onprogress = function(e)
-					{
-						var percent = Math.round((Math.round((e.loaded/e.total)*100) / 2));
-						document.getElementById(obj.Progressbar).style.width = percent + '%';
-					};
-					AJAX.onprogress = function(e)
-					{
-						var percent = Math.round((Math.round((e.loaded/e.total)*100) / 2));
-						document.getElementById(obj.Progressbar).style.width = (parseInt(document.getElementById(obj.Progressbar).style.width) + percent) + '%';
-					};
-				}
-			}
-
-
-
-			AJAX.onreadystatechange  = function()
-			{
-				if(this.readyState == 4 && this.status == 200)
-				{
-
-					if(obj.progressType == 'Loadingbar' && typeof(obj.Loadingbar) != 'undefined')
-					{
-						document.getElementById(obj.Loadingbar).style.display = 'none';
-					}
-
-					setTimeout(function()
-					{
-						if(obj.progressType == 'Progressbar' && typeof(obj.Progressbar) != 'undefined' && typeof(obj.ProgressContainer) != 'undefined')
-						{
-							document.getElementById(obj.ProgressContainer).style.display = 'none';
-							document.getElementById(obj.Progressbar).style.width = '0px';
-						}
-					},1000);
-
-				    if(typeof(obj.success) != 'undefined')
-					{
-					    obj.success(AJAX.responseText);
-					}
-				}
-				if(this.readyState == 4 && this.status != 200)
-				{
-				    if(typeof(obj.error) != 'undefined')
-					{
-					    obj.error('Oops something went wrong');
-					}
-				}
-			};
-
-			if(typeof(obj.async) == 'undefined')
+			if(obj.async == true)
 			{
 				AJAX.open(requestMethod,url,true);
 			}
 			else
 			{
-				if(obj.async == true)
-				{
-					AJAX.open(requestMethod,url,true);
-				}
-				else
-				{
-					AJAX.open(requestMethod,url,false);
-				}
+				AJAX.open(requestMethod,url,false);
 			}
-
-			if(typeof(obj.contentType) != 'undefined' && requestMethod == 'GET')
-			{
-				if(obj.contentType == 'JSON')
-				{
-					AJAX.setRequestHeader("Content-Type", "application/json");
-				}
-				if(obj.contentType == 'multipart')
-				{
-					AJAX.setRequestHeader("Content-Type", "multipart/form-data");
-				}
-				if(obj.contentType == 'plain')
-				{
-					AJAX.setRequestHeader("Content-Type", "text/plain");
-				}
-				if(obj.contentType == 'html')
-				{
-					AJAX.setRequestHeader("Content-Type", "text/html");
-				}
-			}
-			else if(typeof(obj.contentType) != 'undefined' && requestMethod == 'POST')
-			{
-				if(obj.contentType == 'JSON')
-				{
-					AJAX.setRequestHeader("Content-Type", "application/json");
-				}
-				if(obj.contentType == 'multipart')
-				{
-					AJAX.setRequestHeader("Content-Type", "multipart/form-data");
-				}
-				if(obj.contentType == 'plain')
-				{
-					AJAX.setRequestHeader("Content-Type", "text/plain");
-				}
-				if(obj.contentType == 'html')
-				{
-					AJAX.setRequestHeader("Content-Type", "text/html");
-				}
-				if(obj.contentType == 'url-encode')
-				{
-					AJAX.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-				}
-			}
-
-			if(typeof(obj.headers) != 'undefined')
-			{
-				var HeadersLen = obj.headers.length;
-				var headerSplit = '';
-
-				for(var i=0;i<HeadersLen;i++)
-				{
-					headerSplit = obj.headers[i].split(':');
-					AJAX.setRequestHeader(headerSplit[0], headerSplit[1]);
-				}
-			}
-
-			if(typeof(data) != 'undefined')
-			{
-				AJAX.send(data);
-			}
-			else
-			{
-				AJAX.send();
-			}
-
-			return AJAX;
 		}
-		catch(e)
+
+		if(typeof(obj.contentType) != 'undefined' && requestMethod == 'GET')
 		{
-			console.error(e);
+			if(obj.contentType == 'JSON')
+			{
+				AJAX.setRequestHeader("Content-Type", "application/json");
+			}
+			if(obj.contentType == 'multipart')
+			{
+				AJAX.setRequestHeader("Content-Type", "multipart/form-data");
+			}
+			if(obj.contentType == 'plain')
+			{
+				AJAX.setRequestHeader("Content-Type", "text/plain");
+			}
+			if(obj.contentType == 'html')
+			{
+				AJAX.setRequestHeader("Content-Type", "text/html");
+			}
 		}
+		else if(typeof(obj.contentType) != 'undefined' && requestMethod == 'POST')
+		{
+			if(obj.contentType == 'JSON')
+			{
+				AJAX.setRequestHeader("Content-Type", "application/json");
+			}
+			if(obj.contentType == 'multipart')
+			{
+				AJAX.setRequestHeader("Content-Type", "multipart/form-data");
+			}
+			if(obj.contentType == 'plain')
+			{
+				AJAX.setRequestHeader("Content-Type", "text/plain");
+			}
+			if(obj.contentType == 'html')
+			{
+				AJAX.setRequestHeader("Content-Type", "text/html");
+			}
+			if(obj.contentType == 'url-encode')
+			{
+				AJAX.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+			}
+		}
+
+		if(typeof(obj.headers) != 'undefined')
+		{
+			for(var key in obj.headers)
+			{
+				AJAX.setRequestHeader(key, obj.headers[key]);
+			}
+		}
+
+		if(typeof(data) != 'undefined')
+		{
+			AJAX.send(data);
+		}
+		else
+		{
+			AJAX.send();
+		}
+
+		return AJAX;
 	};
-
-	fsn.worker = Library.prototype.worker = function(obj)
-	{
-		let w;
-		if(typeof(Worker) !== "undefined")
-		{
-	        if(typeof(w) == "undefined")
-	        {
-	            w = new Worker(obj.path);
-	        }
-	        w.onmessage = function(event)
-	        {
-	            obj.success(event.data,w);
-	        };
-	    }
-	    else
-	    {
-	        console.error('Sorry! No Web Worker support.');
-	    }
-	};
-
-
-	/*
-		bind data to document directly without page load
-	*/
-
-	fsn.bindData = Library.prototype.bindData = function(cb,$elem)
-	{
-		try
-		{
-			var $scope = {};
-			cb($scope);
-			let attribute = '';
-			let finalParsedData = '';
-			let elemattribute = '';
-			let elemattributeLen = 0;
-			let temp = '';
-			let documentString;
-	
-			if(typeof($elem) == 'undefined')
-			{
-				documentString = document.querySelectorAll("*");
-			}
-			else
-			{
-				documentString = document.getElementById($elem).querySelectorAll('*');
-			}
-
-			let documentStringLen = documentString.length;
-
-			for(let i = 0; i < documentStringLen; i++)
-			{
-				
-				if(documentString[i].getAttribute("fsn-data"))
-				{
-					attribute = documentString[i].getAttribute("fsn-data").replace(/[\{\}]*/g,'');
-					finalParsedData = findProp($scope,attribute);
-					documentString[i].innerHTML = finalParsedData;
-				}
-
-				if(documentString[i].getAttribute("fsn-attr"))
-				{
-					attribute = documentString[i].getAttribute("fsn-attr").replace(/[\{\}]*/g,'');
-					finalParsedData = findProp($scope,attribute);
-					documentString[i].setAttribute('bind-value',finalParsedData);
-				}
-
-				if(documentString[i].getAttribute("fsn-value"))
-				{
-					attribute = documentString[i].getAttribute("fsn-value").replace(/[\{\}]*/g,'');
-					finalParsedData = findProp($scope,attribute);
-					documentString[i].value = finalParsedData;
-				}
-
-				if(documentString[i].getAttribute("fsn-include"))
-				{
-					attribute = documentString[i].getAttribute("fsn-include");
-					fsn.http({
-			            url:attribute,
-			            requestMethod:'GET',
-			            success:function(callback)
-			            {
-			              documentString[i].innerHTML = callback;
-			            }
-			        });
-				}
-
-
-				if(documentString[i].getAttribute("fsn-repeat"))
-				{	
-					var tempDate = '';		
-					attribute = documentString[i].getAttribute("fsn-repeat").replace(/[\{\}]*/g,'');
-					elemattribute = $scope[documentString[i].getAttribute("fsn-bind")].replace(/\<[^\>]*\>/g,'').split(' ');
-					elemattributeLen = elemattribute.length;
-					finalParsedData = findProp($scope,attribute);
-					finalParsedData.forEach(function(bindValues)
-					{
-						
-						temp = $scope[documentString[i].getAttribute("fsn-bind")];
-						for(let k=0;k<elemattributeLen;k++)
-						{
-							temp = temp.replace(new RegExp(elemattribute[k],'g'),bindValues[elemattribute[k]]);
-						}
-						tempDate += temp;
-						
-					});	
-
-					documentString[i].innerHTML = tempDate;
-				}
-			}
-		}
-		catch(e)
-		{
-			console.error(e);
-		}
-	};
-
-
-	function findProp(obj, prop, defval)
-	{
-	    if (typeof defval == 'undefined')
-	    {
-	    	defval = null;
-	    }
-	    prop = prop.split('.');
-	    for (var i = 0; i < prop.length; i++)
-	    {
-	        if(typeof obj[prop[i]] == 'undefined')
-	        {
-	            return defval;
-	        }
-
-	        obj = obj[prop[i]];
-	    }
-	    return obj;
-	}
 
 	if(!window.fsn)
 	{
@@ -2692,89 +2703,3 @@
 
 })();
 
-
-
-window.onpopstate = function(event)
-{
-	document.close();
-	var obj = {};
-	if(event.state != null)
-	{
-		obj = event.state;
-	}
-	else
-	{
-		obj['Url'] = window.location.href;
-	}
-
-	if(window.XMLHttpRequest)
-	{
-		var ajx = new XMLHttpRequest();
-	}
-	else
-	{
-		var ajx = new ActiveXObject("Microsoft.XMLHTTP");
-	}
-
-	if(document.getElementById('PageLoadProgress') != null && document.getElementById('PageLoadContainer') != null)
-	{
-		document.getElementById('PageLoadContainer').style.display = 'block';
-		document.getElementById('PageLoadProgress').style.width = 0;
-		ajx.onprogress = function(e)
-		{
-			var percent = Math.round((e.loaded/e.total)*100);
-			document.getElementById("PageLoadProgress").style.width = percent + '%';
-		};
-	}
-
-	ajx.onreadystatechange  = function()
-	{
-		if(this.readyState == 4 && this.status == 200)
-		{
-			document.documentElement.innerHTML = '';
-			document.documentElement.innerHTML = ajx.responseText;
-
-			var scriptElem = document.getElementsByTagName('script');
-			var scriptLen = scriptElem.length;
-			for(var i=0;i<scriptLen;i++)
-			{
-				loadExternalJSFile(scriptElem[i],function(callback)
-				{
-					document.body.appendChild(callback);
-				});
-			}
-
-			function loadExternalJSFile(fileName,callback)
-			{
-				if(fileName.hasAttribute('src') && fileName.src != '')
-				{
-					var script = document.createElement('script');
-					script.setAttribute('type','text/javascript');
-					script.setAttribute('src',fileName.src);
-					script.defer = true;
-					callback(script);
-				}
-				else
-				{
-					setTimeout(function()
-					{
-						var script = document.createElement('script');
-						script.setAttribute('type','text/javascript');
-						script.text = fileName.innerHTML;
-						script.defer = true;
-						callback(script);
-					},0);
-				}
-			}
-
-			fsn.ReplaceUrl(obj['Url'],obj['Url']);
-		}
-		if(this.readyState == 4 && this.status != 200)
-		{
-		    console.log('Oops something went wrong');
-		}
-	};
-
-	ajx.open("GET",obj['Url'],true);
-	ajx.send();
-};
